@@ -5,10 +5,7 @@ import { Message } from "./Message"
 
 export const Example = () => {
     const [query, setQuery] = useState('')
-    const [authorData, setAuthorData] = useState('')
-    const [answer, setAnswer] = useState('')
     const [messages, setMessages] = useState([])
-    /* const [data, setData] = useState('') */
 
     const availableFunctions = {
         fetch_author: fetch_author,
@@ -16,7 +13,6 @@ export const Example = () => {
     }
 
     async function run_conversation(querystring) {
-        /*    setMessages((prev) => [{speaker: 'user', msg: querystring}, ...prev]) */
         const baseUrl = 'https://api.openai.com/v1/chat/completions'
         const headers = {
             "Content-Type": "application/json",
@@ -67,32 +63,6 @@ export const Example = () => {
             if (message.function_call) {
                 function_name = message.function_call.name
             }
-            /* const content = message.content */
-            /* if (content) {
-                setMessages((prev) => [{speaker: 'openai', msg: content}, ...prev])
-            } */
-            /*           if (function_name === 'fetch_author') {
-                          const functionArgs = JSON.parse(message.function_call.arguments)
-                          const function_response = await fetch_author(functionArgs.author)
-                          console.log('response from fetch_author was: ', function_response)
-                          data.messages.push({
-                              role: "function",
-                              name: function_name,
-                              content: function_response
-                          })
-          
-                          console.log('Sending req to openai..')
-                          const secondresponse = await axios.post(baseUrl, data, { headers: headers })
-          
-                      } else if (function_name === 'add_numbers') {
-                          const functionArgs = JSON.parse(message.function_call.arguments)
-                          const function_response = add_numbers(functionArgs.arrayOfNumbers)
-                          data.messages.push({
-                              role: "function",
-                              name: function_name,
-                              content: function_response
-                          })
-                      } */
 
         } catch (err) {
             console.log('there was an error: ', err)
