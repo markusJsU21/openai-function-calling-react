@@ -5,14 +5,14 @@ import { Message } from "./Message"
 
 export const Example = () => {
     const [query, setQuery] = useState('')
-    const [messages, setMessages] = useState([])
+    const [messages, setMessages] = useState([{role: "system", content: "You are a helpful assistant."}])
 
     const availableFunctions = {
-        fetch_author: fetch_author,
-        add_numbers: add_numbers
+        fetch_author,
+        add_numbers
     }
 
-    async function run_conversation(querystring) {
+    async function run_conversation(messages) {
         const baseUrl = 'https://api.openai.com/v1/chat/completions'
         const headers = {
             "Content-Type": "application/json",
@@ -21,47 +21,47 @@ export const Example = () => {
 
         let data = {
             model: "gpt-3.5-turbo-1106",
-            messages: [
-                {
-                    role: "user",
-                    content: querystring
-                }
-            ],
+            messages,
             functions: [
                 fetchAuthorDescription,
                 addNumbersDescription
             ]
         }
-        setMessages(([...data.messages]))
+        
+        setMessages(([...data.messages]))   
         try {
-            console.log('Sending req to openai')
             const response = await axios.post(baseUrl, data, { headers: headers })
             const finish_reason = response.data.choices[0].finish_reason
             const message = response.data.choices[0].message
+
             if (finish_reason === 'function_call') {
                 const function_name = message.function_call.name
                 const functionArgs = JSON.parse(message.function_call.arguments)
-                console.log('functionArgs: ', functionArgs)
                 const function_response = await availableFunctions[function_name](functionArgs)
-                console.log('response from function was: ', function_response)
+
                 data.messages.push({
                     role: "function",
                     name: function_name,
                     content: function_response
                 })
                 setMessages(([...data.messages]))
+                const response2 = await axios.post(baseUrl, data, { headers: headers })
+                const finish_reason2 = response2.data.choices[0].finish_reason
+                const message2 = response2.data.choices[0].message
+                if(finish_reason2 === 'stop'){
+                    data.messages.push({
+                        role: "assistant",
+                        content: message2.content
+                    })
+                }
+                setMessages(([...data.messages]))
+
             } else if (finish_reason === 'stop') {
-                console.log('finish_reason was stop')
                 data.messages.push({
                     role: "assistant",
-                    content: response.data.choices[0].content
+                    content: message.content
                 })
                 setMessages(([...data.messages]))
-            }
-
-            let function_name = ''
-            if (message.function_call) {
-                function_name = message.function_call.name
             }
 
         } catch (err) {
@@ -71,24 +71,28 @@ export const Example = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault()
-        run_conversation(query)
+        const userMessage = e.target.query.value
+        const newMessages = [...messages, {
+            role: "user", content: userMessage
+        }]
+        run_conversation(newMessages)
         setQuery('')
     }
 
     return (
-        <div className="d-flex gap-4 flex-column align-items-center bg-dark" style={{ width: "100vw", height: "100vh" }}>
+        <div className="d-flex gap-4 flex-column align-items-center bg-dark p-5" style={{ width: "100vw", height: "100vh" }}>
             <h1 className="text-light mt-5">openai function calls</h1>
             <form onSubmit={handleSubmit} action="">
+                <div className="d-flex flex-column gap-2 bg-secondary mb-3 p-3 rounded">
+                    {messages.length > 0 && messages.map((msg, index) => {
+                        return msg.role === 'system' || msg.role === 'function' ? '' : <Message key={index} content={msg.content} role={msg.role}></Message>
+                        })
+                    }
+                </div>
                 <div className="d-flex gap-3">
-                    <input type="text" className="form-control" value={query} onChange={(e) => setQuery(e.target.value)} />
+                    <input type="text" className="form-control" name="query" value={query} onChange={(e) => setQuery(e.target.value)} />
                     <button type="submit" className="btn btn-primary">Go</button>
 
-                </div>
-                <div className="d-flex flex-column gap-2 bg-secondary mt-3 p-3 rounded">
-                    {messages.length > 0 && messages.map((msg, index) => {
-                        return <Message key={index} content={msg.content} role={msg.role}></Message>
-                    })
-                    }
                 </div>
             </form>
         </div>
